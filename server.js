@@ -71,9 +71,9 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  school: { type: String, default: "default_school" },
-  grade: { type: String, default: "default_grade" },
-  class: { type: String, default: "default_class" },
+  school: { type: String, required: true },
+  grade: { type: String, required: true },
+  class: { type: String, required: true },
   role: { type: String, default: "user", enum: ["user", "admin"] },
   isVerified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
@@ -380,8 +380,10 @@ app.get("/api/users/me", auth, async (req, res) => {
 // 사용자 계정 정보 업데이트 (이메일, 비밀번호)
 app.put("/api/users/account", auth, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, school, grade, class: className } = req.body;
     const user = req.user;
+
+    console.log('계정 정보 업데이트 요청:', { email, school, grade, class: className });
 
     // 이메일 변경 시 중복 확인
     if (email && email !== user.email) {
@@ -398,11 +400,18 @@ app.put("/api/users/account", auth, async (req, res) => {
       user.password = await bcrypt.hash(password, salt);
     }
 
+    // 학교 정보 업데이트
+    if (school) user.school = school;
+    if (grade) user.grade = grade;
+    if (className) user.class = className;
+
     await user.save();
 
     // 비밀번호 제외하고 응답
     const userResponse = user.toObject();
     delete userResponse.password;
+
+    console.log('업데이트된 사용자 정보:', userResponse);
 
     res.json({
       message: "계정 정보가 업데이트되었습니다.",
